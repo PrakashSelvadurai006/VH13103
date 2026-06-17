@@ -1,0 +1,45 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum NotificationType {
+  Event
+  Result
+  Placement
+}
+
+model Student {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  name          String
+  notifications Notification[]
+
+  @@map("students")
+}
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  studentId  Int              @map("student_id")
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  message    String           @db.Text
+  isRead     Boolean          @default(false) @map("is_read")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  @@index([studentId], map: "notifications_student_id_idx")
+  @@index([isRead], map: "notifications_is_read_idx")
+  @@index([createdAt], map: "notifications_created_at_idx")
+  @@index([type], map: "notifications_notification_type_idx")
+  
+  // Composite indexes for query optimizations (Stage 3)
+  @@index([studentId, createdAt(sort: Desc)], map: "notifications_student_id_created_at_idx")
+  @@index([studentId, isRead, createdAt(sort: Desc)], map: "notifications_student_id_is_read_created_at_idx")
+  @@index([studentId, type, createdAt(sort: Desc)], map: "notifications_student_id_type_created_at_idx")
+
+  @@map("notifications")
+}
